@@ -42,33 +42,37 @@ def opprett_ny_pdf(original_pdf_path, startside, sluttside, output_path):
 # Streamlit app
 st.title("Målebrev Splitting av PDF")
 
+# Finn brukermappen
+brukermappe = os.path.expanduser("~")
+
+# Finn "Downloads"-mappen
+downloads_mappe = os.path.join(brukermappe, "Downloads")
+
+# Opprett en ny mappe i "Downloads"
+ny_mappe = os.path.join(downloads_mappe, "Splittet_malebrev")
+if not os.path.exists(ny_mappe):
+    os.makedirs(ny_mappe)
+
+# Display the new folder for saving PDFs
+st.write(f"Filer vil bli lagret i: {ny_mappe}")
+
 # File uploader for the PDF
 uploaded_pdf = st.file_uploader("Last opp PDF-fil", type=["pdf"])
 
-# Input for the folder path
-output_directory = st.text_input("Skriv inn mappenavn der PDF-filer skal lagres (Shift + Høyreklikk -> Kopier som bane)", "")
-
-# Konverter til rå streng
-output_directory = r"{}".format(output_directory)  # Sikrer at backslashes tolkes riktig
-
-# Debug: Display the path entered by the user and absolute path for debugging
-st.write(f"Mappen som ble angitt er: {output_directory}")
-st.write(f"Absolutt bane: {os.path.abspath(output_directory)}")
-
 # Button to start the process
-if uploaded_pdf and output_directory and st.button("Start Splitting av PDF"):
-    if os.path.exists(output_directory):
-        st.write(f"Lagring i mappen: {output_directory}")
+if uploaded_pdf and st.button("Start Splitting av PDF"):
+    if os.path.exists(ny_mappe):
+        st.write(f"Lagring i mappen: {ny_mappe}")
         # Lese tekst fra PDF
         tekst_per_side = les_tekst_fra_pdf(uploaded_pdf)
 
         startside = 0
         for i, tekst in enumerate(tekst_per_side):
-            if "Målebrev" in tekst and i > startside:  # Korrigert "i" til "in"
+            if "Målebrev" in tekst and i > startside:
                 postnummer, mengde, dato = trekk_ut_verdier(tekst_per_side[startside])
                 if postnummer != "ukjent" and mengde != "ukjent":
                     filnavn = f"{postnummer}_{dato}.pdf"
-                    output_sti = os.path.join(output_directory, filnavn)
+                    output_sti = os.path.join(ny_mappe, filnavn)
 
                     # Reopen the PDF for splitting and save the section as a new PDF
                     with open(uploaded_pdf.name, "rb") as original_pdf:
@@ -81,11 +85,11 @@ if uploaded_pdf and output_directory and st.button("Start Splitting av PDF"):
         # Håndter siste segment
         postnummer, mengde, dato = trekk_ut_verdier(tekst_per_side[startside])
         filnavn = f"{postnummer}_{dato}.pdf"
-        output_sti = os.path.join(output_directory, filnavn)
+        output_sti = os.path.join(ny_mappe, filnavn)
 
         # Reopen the PDF for splitting and save the section as a new PDF
         with open(uploaded_pdf.name, "rb") as original_pdf:
             opprett_ny_pdf(uploaded_pdf.name, startside, len(tekst_per_side) - 1, output_sti)
         st.success(f"Ny PDF opprettet og lagret: {output_sti}")
     else:
-        st.error(f"Den angitte mappen eksisterer ikke. Vennligst sjekk banen og prøv igjen. Mappen som ble angitt er: {output_directory}")
+        st.error(f"Den angitte mappen eksisterer ikke. Vennligst sjekk banen og prøv igjen.")
