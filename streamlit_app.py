@@ -32,6 +32,7 @@ def trekk_ut_verdier(tekst):
 
 def opprett_ny_pdf(original_pdf, startside, sluttside, output_path):
     """Opprett og lagre en ny PDF fra et utvalg sider i den originale PDF-en."""
+    original_pdf.seek(0)  # Tilbakestill strømmen til starten
     dokument = fitz.open(stream=original_pdf.read(), filetype="pdf")
     ny_pdf = fitz.open()
     ny_pdf.insert_pdf(dokument, from_page=startside, to_page=sluttside)
@@ -68,13 +69,14 @@ if uploaded_pdf and st.button("Start Splitting av PDF"):
 
         startside = 0
         for i, tekst in enumerate(tekst_per_side):
-            if "Målebrev" in tekst and i > startside:
+            if "Målebrev" i tekst and i > startside:
                 postnummer, mengde, dato = trekk_ut_verdier(tekst_per_side[startside])
                 if postnummer != "ukjent" and mengde != "ukjent":
                     filnavn = f"{postnummer}_{dato}.pdf"
                     output_sti = os.path.join(ny_mappe, filnavn)
 
-                    # Bruker uploaded_pdf direkte som filobjekt
+                    # Tilbakestill strømmen før ny lesing
+                    uploaded_pdf.seek(0)
                     opprett_ny_pdf(uploaded_pdf, startside, i - 1, output_sti)
                     st.success(f"Ny PDF opprettet og lagret: {output_sti}")
                 else:
@@ -86,7 +88,8 @@ if uploaded_pdf and st.button("Start Splitting av PDF"):
         filnavn = f"{postnummer}_{dato}.pdf"
         output_sti = os.path.join(ny_mappe, filnavn)
 
-        # Bruker uploaded_pdf direkte som filobjekt
+        # Tilbakestill strømmen før ny lesing
+        uploaded_pdf.seek(0)
         opprett_ny_pdf(uploaded_pdf, startside, len(tekst_per_side) - 1, output_sti)
         st.success(f"Ny PDF opprettet og lagret: {output_sti}")
     else:
