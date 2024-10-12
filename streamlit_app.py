@@ -69,7 +69,7 @@ if uploaded_pdf and st.button("Start Splitting av PDF"):
 
         startside = 0
         for i, tekst in enumerate(tekst_per_side):
-            if "Målebrev" i tekst and i > startside:
+            if "Målebrev" in tekst and i > startside:
                 postnummer, mengde, dato = trekk_ut_verdier(tekst_per_side[startside])
                 if postnummer != "ukjent" and mengde != "ukjent":
                     filnavn = f"{postnummer}_{dato}.pdf"
