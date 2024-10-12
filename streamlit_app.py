@@ -1,6 +1,7 @@
 import fitz  # PyMuPDF
 import re
 import os
+import zipfile
 from datetime import datetime
 import streamlit as st
 
@@ -40,6 +41,14 @@ def opprett_ny_pdf(original_pdf, startside, sluttside, output_path):
     ny_pdf.close()
     dokument.close()
 
+def zip_directory(directory_path, output_zip_path):
+    """Pakk innholdet av en mappe inn i en ZIP-fil."""
+    with zipfile.ZipFile(output_zip_path, 'w') as zipf:
+        for root, dirs, files in os.walk(directory_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                zipf.write(file_path, os.path.relpath(file_path, directory_path))
+
 # Streamlit app
 st.title("Målebrev Splitting av PDF")
 
@@ -67,9 +76,10 @@ if uploaded_pdf and st.button("Start Splitting av PDF"):
         # Lese tekst fra PDF
         tekst_per_side = les_tekst_fra_pdf(uploaded_pdf)  # Bruker filobjektet direkte
 
+        opprettede_filer = []
         startside = 0
         for i, tekst in enumerate(tekst_per_side):
-            if "Målebrev" in tekst and i > startside:
+            if "Målebrev" i tekst and i > startside:
                 postnummer, mengde, dato = trekk_ut_verdier(tekst_per_side[startside])
                 if postnummer != "ukjent" and mengde != "ukjent":
                     filnavn = f"{postnummer}_{dato}.pdf"
@@ -79,6 +89,7 @@ if uploaded_pdf and st.button("Start Splitting av PDF"):
                     uploaded_pdf.seek(0)
                     opprett_ny_pdf(uploaded_pdf, startside, i - 1, output_sti)
                     st.success(f"Ny PDF opprettet og lagret: {output_sti}")
+                    opprettede_filer.append(output_sti)
                 else:
                     st.warning(f"Kunne ikke opprette ny PDF for side {startside} til {i - 1}, mangler nødvendig informasjon.")
                 startside = i
@@ -92,5 +103,19 @@ if uploaded_pdf and st.button("Start Splitting av PDF"):
         uploaded_pdf.seek(0)
         opprett_ny_pdf(uploaded_pdf, startside, len(tekst_per_side) - 1, output_sti)
         st.success(f"Ny PDF opprettet og lagret: {output_sti}")
+        opprettede_filer.append(output_sti)
+
+        # Pakk hele mappen i en ZIP-fil
+        zip_filnavn = os.path.join(downloads_mappe, "Splittet_malebrev.zip")
+        zip_directory(ny_mappe, zip_filnavn)
+
+        # Tilby nedlasting av ZIP-fil
+        with open(zip_filnavn, "rb") as z:
+            st.download_button(
+                label="Last ned alle PDF-filer som ZIP",
+                data=z,
+                file_name="Splittet_malebrev.zip",
+                mime="application/zip"
+            )
     else:
         st.error(f"Den angitte mappen eksisterer ikke. Vennligst sjekk banen og prøv igjen.")
